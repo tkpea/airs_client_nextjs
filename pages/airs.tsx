@@ -1,66 +1,57 @@
 import type { NextPage } from 'next'
 import Head from 'next/head'
 import {FormEvent, useEffect, useState} from "react";
-import axios from 'axios'
+import http from "../plugins/http";
 import {Air, AirsOption} from './api/airs'
 import {LineChart, Line, XAxis, CartesianGrid, YAxis, ResponsiveContainer, Tooltip, Label} from "recharts";
-import {Button, Container, TextField} from '@material-ui/core'
+import { Button, Container, TextField} from '@material-ui/core'
 import day from "../plugins/day";
 
-const fetchAir = (params?:AirsOption):Promise<Air[]> => {
-    return new Promise((resolve, reject) => {
-        axios
-            .get("/api/airs/",{params})
-            .then((res) => {
-                resolve(res.data)
-            })
-            .catch((error) => {
-                reject(error)
-            })
-    })
-}
 const useFetchAir = () => {
     const [data, setData] = useState<Air[]>([]);
-    const [current, setCurrent] = useState<Air>({
-        time: undefined,
-        co2: undefined,
-        temperature: undefined,
-        humidity: undefined
-    });
     const [isFetching, setIsFetching] = useState(true);
 
     useEffect(() => {
         fetch()
     }, []);
 
-    const fetch = (prams?:AirsOption) => {
+    const fetch = (params?:AirsOption) => {
         setIsFetching(true);
-        fetchAir(prams).then((res) => {
-            const response = res.map(v => {
-                v.time = day(v.time).format("HH:mm")
-                return v
+        http
+            .get("/api/airs/",{params})
+            .then((res) => {
+
+                setData(res.data);
             })
-            setCurrent(response[response.length - 1])
-            response.pop()
-            setData(response);
-        }).catch(error => {
-            console.error(error)
-        })
-        .finally(() => {
-            setIsFetching(false);
-        })
+            .catch((error) => {
+                console.error(error)
+            })
+            .finally(() => {
+                setIsFetching(false);
+            })
     }
 
     return {
-        airs: data,
-        currentAir: current,
+        data,
         isFetching,
         fetch
     };
 }
 
 const Airs: NextPage = () => {
-    const { airs, currentAir, isFetching, fetch } = useFetchAir();
+    const { data, isFetching, fetch } = useFetchAir();
+    const [airs, setAirs] = useState<Air[]>()
+    const [currentAir, setCurrentAir] = useState<Air>()
+
+    useEffect(() => {
+        const res = data.map(v => {
+            v.time = day(v.time).format("M/D HH:mm")
+            return v
+        })
+        setCurrentAir(res[res.length - 1])
+        res.pop()
+        setAirs(res)
+    },[data])
     const [ params, setParams] = useState<AirsOption>({
         start: "-1d",
         stop:"now()",
@@ -102,53 +93,98 @@ const Airs: NextPage = () => {
 
 
             <Container style={{width: '100%'}}>
-                {!isFetching &&
-                <ResponsiveContainer width="100%" height={400}>
 
-                    <LineChart height={300} data={airs} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-
-                        <XAxis dataKey={"time"} fontSize={10}/>
-                        <YAxis width={80} yAxisId="left" tick={{ fontSize: 10 }} >
-                            <Label
-                                value="温度（℃）"
-                                angle={-90}
-                                position='outside'
-                                fill='#D94A4A'
-                                fontSize={14}
-
-                            />
-                        </YAxis>
-                        <YAxis width={80} yAxisId="right"  orientation="right" tick={{ fontSize: 10 }} >
-                            <Label
-                                value="湿度（％）"
-                                angle={-90}
-                                position='outside'
-                                fill='#038C8C'
-                                fontSize={14}
-                            />
-                        </YAxis>
-
-                        <Tooltip />
-                        <Line type="monotone" dataKey={"temperature"} stroke="#D94A4A"  strokeWidth={2} unit="℃"　yAxisId="left" dot={<span/>}/>
-                        <Line type="monotone" dataKey={"humidity"} stroke="#038C8C" strokeWidth={2} unit="%" yAxisId="right" dot={<span/>}/>
-                        <CartesianGrid stroke="#ccc" strokeDasharray="1 1" />
-                    </LineChart>
-                </ResponsiveContainer>
-                }
                 <form onSubmit={(event) => handleSubmit(event)}>
-                    <TextField id="standard-basic" label="start" name="start" value={params.start} onChange={(event) => handleChange(event)}/>
-                    <TextField id="standard-basic"  label="end" name="stop" value={params.stop}  onChange={(event) => handleChange(event)}/>
-                    <TextField id="standard-basic" label="start" name="every" value={params.every} onChange={(event) => handleChange(event)}/>
-                    <TextField id="standard-basic"  label="end" name="fn" value={params.fn}  onChange={(event) => handleChange(event)}/>
+                    <div className={"flex justify-evenly p-5"}>
+                        <TextField id="standard-basic" label="start" name="start" value={params.start} onChange={(event) => handleChange(event)}/>
+                        <TextField id="standard-basic"  label="end" name="stop" value={params.stop}  onChange={(event) => handleChange(event)}/>
+                        <TextField id="standard-basic" label="every" name="every" value={params.every} onChange={(event) => handleChange(event)}/>
+                        <TextField id="standard-basic"  label="fn" name="fn" value={params.fn}  onChange={(event) => handleChange(event)}/>
+                        <Button variant="contained" color="primary" type={"submit"}>
+                            Primary
+                        </Button>
+                    </div>
 
-                    <Button variant="contained" color="primary" type={"submit"}>
-                        Primary
-                    </Button>
+
                 </form>
-                <div>{currentAir.time}</div>
+                {currentAir &&
+                <div className={"flex justify-center"}>
+                    <dl className={"p-4"}>
+                        <dt>co2</dt>
+                        <dd>{currentAir.co2}</dd>
+                    </dl>
+                    <dl className={"p-4"}>
+                        <dt>温度</dt>
+                        <dd>{currentAir.temperature}</dd>
+                    </dl>
+                    <dl className={"p-4"}>
+                        <dt>湿度</dt>
+                        <dd>{currentAir.humidity}</dd>
+                    </dl>
+                </div>
+                }
+                {!isFetching &&
+
+                    <div>
+                        <ResponsiveContainer width="100%" height={400}>
+                            <LineChart height={300} data={airs} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+
+                                <XAxis dataKey={"time"} fontSize={10}/>
+                                <YAxis width={80} yAxisId="left" tick={{ fontSize: 10 }} >
+                                    <Label
+                                        value="温度（℃）"
+                                        angle={-90}
+                                        position='outside'
+                                        fill='#D94A4A'
+                                        fontSize={14}
+                                    />
+                                </YAxis>
+                                <YAxis width={80} yAxisId="right"  orientation="right" tick={{ fontSize: 10 }} >
+                                    <Label
+                                        value="湿度（％）"
+                                        angle={-90}
+                                        position='outside'
+                                        fill='#038C8C'
+                                        fontSize={14}
+                                    />
+                                </YAxis>
+
+                                <Tooltip />
+                                <Line type="monotone" dataKey={"temperature"} stroke="#D94A4A"  strokeWidth={2} unit="℃"　yAxisId="left" dot={<span/>}/>
+                                <Line type="monotone" dataKey={"humidity"} stroke="#038C8C" strokeWidth={2} unit="%" yAxisId="right" dot={<span/>}/>
+                                <CartesianGrid stroke="#ccc" strokeDasharray="1 1" />
+                            </LineChart>
+                        </ResponsiveContainer>
+                        <ResponsiveContainer width="100%" height={400}>
+
+                            <LineChart height={300} data={airs} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+
+                                <XAxis dataKey={"time"} fontSize={10}/>
+                                <YAxis width={80} yAxisId="left" tick={{ fontSize: 10 }} >
+                                    <Label
+                                        value="CO2（ppm）"
+                                        angle={-90}
+                                        position='outside'
+                                        fill='#D94A4A'
+                                        fontSize={14}
+
+                                    />
+                                </YAxis>
+                                <YAxis width={80} yAxisId="right"  orientation="right" tick={{ fontSize: 10 }} >
+
+                                </YAxis>
+
+                                <Tooltip />
+                                <Line type="monotone" dataKey={"co2"} stroke="#D94A4A"  strokeWidth={2} unit="℃"　yAxisId="left" dot={<span/>}/>
+                                <CartesianGrid stroke="#ccc" strokeDasharray="1 1" />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+                }
+
             </Container>
         </div>
     )
 }
-
+// @ts-ignore
 export default Airs
