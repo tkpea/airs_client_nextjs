@@ -3,33 +3,49 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import {InfluxDB} from "@influxdata/influxdb-client";
 
 export type Air = {
-    time: string
+    time?: string
     co2?: number
     temperature?: number
     humidity?: number
+}
+export type AirsOption = {
+    start?: string
+    stop?: string
+    every?: string
+    fn?: "mean" | "avg" | "max" | "min"
 }
 type Data = Air[]
 export default async function handler(
     req: NextApiRequest,
     res: NextApiResponse<Data>
 ) {
+    const options:AirsOption = {
+        start:req.query.start as string || "-1d",
+        stop:req.query.stop as string || "now()",
+        every:req.query.every as string || "5m",
+        fn:req.query.fn as "mean" | "avg" | "max" | "min" || "mean",
+    }
 
-    const start = req.query.start as string || "-3h"
-    const result = await fetch({start})
+
+    const result = await fetch(options)
     res.status(200).json(result)
 }
-const fetch = ({start}: {start?: string}):Promise<Air[]> => {
+const fetch = ({start, stop, every, fn}:AirsOption):Promise<Air[]> => {
     const token = process.env.INFLUXDB_TOKEN
     const org = process.env.INFLUXDB_ORG as string
     const client = new InfluxDB({url: process.env.INFLUXDB_URL as string, token: token})
 
-    let query = `from(bucket: "${process.env.INFLUXDB_BUCKET as string}")
-        |> range(start: ${start})
-        |> filter(fn: (r) => r._measurement == "airs")
-        |> filter(fn: (r) => r["_field"] == "co2" or r["_field"] == "humidity" or r["_field"] == "temperature"  or r["_field"] == "timestamp")`
-
     const queryApi = client.getQueryApi(org)
-
+    const query = `from(bucket: "${process.env.INFLUXDB_BUCKET as string}")
+        |> range(start: ${start},  stop: ${stop})
+        |> filter(fn: (r) =>
+            r._measurement == "airs" and
+            r._field == "co2" or
+            r._field == "temperature" or
+            r._field == "humidity"
+          )
+        |> aggregateWindow(every: ${every}, fn: ${fn})
+        `
     return new Promise((resolve, reject) => {
         const results: any[] = []
         queryApi.queryRows(query, {
