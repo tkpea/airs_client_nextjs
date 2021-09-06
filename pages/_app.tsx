@@ -3,6 +3,8 @@ import { AppProps } from 'next/app'
 import Head from 'next/head'
 import { CssBaseline } from '@material-ui/core'
 import { ThemeProvider } from '@material-ui/core/styles'
+import 'tailwindcss/tailwind.css'
+import '../styles/globals.css'
 import theme from './../styles/theme'
 
 export default function MyApp({ Component, pageProps }: AppProps): JSX.Element {

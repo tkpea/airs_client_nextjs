@@ -2,7 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import {InfluxDB} from "@influxdata/influxdb-client";
 
-type Air = {
+export type Air = {
     time: string
     co2?: number
     temperature?: number

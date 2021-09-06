@@ -12,14 +12,18 @@
     "@influxdata/influxdb-client": "^1.17.0",
     "@material-ui/core": "^4.12.3",
     "@material-ui/icons": "^4.11.2",
+    "ky": "^0.28.5",
     "next": "11.1.2",
     "react": "17.0.2",
     "react-dom": "17.0.2"
   },
   "devDependencies": {
     "@types/react": "17.0.20",
+    "autoprefixer": "^10.3.4",
     "eslint": "7.32.0",
     "eslint-config-next": "11.1.2",
+    "postcss": "^8.3.6",
+    "tailwindcss": "^2.2.9",
     "typescript": "4.4.2"
   }
 }
