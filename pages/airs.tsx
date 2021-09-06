@@ -101,7 +101,7 @@ const Airs: NextPage = () => {
                         <TextField id="standard-basic" label="every" name="every" value={params.every} onChange={(event) => handleChange(event)}/>
                         <TextField id="standard-basic"  label="fn" name="fn" value={params.fn}  onChange={(event) => handleChange(event)}/>
                         <Button variant="contained" color="primary" type={"submit"}>
-                            Primary
+                            送信
                         </Button>
                     </div>
 
